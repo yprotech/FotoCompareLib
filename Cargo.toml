@@ -1,0 +1,3 @@
+[workspace]
+members = ["dircompare", "fotocompare_cli"]
+resolver = "2"

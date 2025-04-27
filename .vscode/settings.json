@@ -1,0 +1,10 @@
+{
+    "files.eol": "\r\n",
+    "files.autoGuessEncoding": false,
+    "files.insertFinalNewline": true,
+    // "editor.formatOnSave": true,
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true,
+    },
+}
