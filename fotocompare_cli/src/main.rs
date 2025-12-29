@@ -18,12 +18,13 @@ struct Args {
     orientation: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
 
     // println!("src:{}", args.src);
     // println!("dest:{}", args.dest);
     // println!("orientation:{}", args.orientation);
 
-    compare(&args.src, &args.dest);
+    compare(&args.src, &args.dest).await;
 }

@@ -1,57 +1,52 @@
+mod dir_scanner;
+mod errors;
 mod folder_infos;
 
 use folder_infos::FolderInfo;
-use std::fs;
 use std::path::Path;
+use tokio::sync::mpsc;
 
-pub fn compare(src: &str, dest: &str) {
-    println!("Test only!!!",);
+pub async fn compare(src: &str, dest: &str) {
+    println!("Test only!!!");
     println!();
     println!("Files in:{src}");
 
-    match get_all_files_in_directory_str(src) {
-        Ok(files) => {
-            for file in files.files {
-                println!("{}", file.path.display());
-            }
-        }
-        Err(e) => eprintln!("Error reading directory: {e}"),
-    }
+    recv_all_files_str(src).await;
 
     println!();
     println!("Files in:{dest}");
 
-    match get_all_files_in_directory_str(dest) {
-        Ok(files) => {
-            for file in files.files {
-                println!("{}", file.path.display());
-            }
-        }
-        Err(e) => eprintln!("Error reading directory: {e}"),
-    }
+    recv_all_files_str(dest).await;
 }
 
-fn get_all_files_in_directory_str(directory: &str) -> Result<FolderInfo, std::io::Error> {
-    let path = Path::new(directory);
+async fn recv_all_files_str(directory: &str) {
+    let path = Path::new(directory).to_path_buf();
 
-    get_all_files_in_directory(path)
+    recv_all_files(path).await;
 }
 
-pub fn get_all_files_in_directory(directory: &Path) -> Result<FolderInfo, std::io::Error> {
-    let path = Path::new(directory);
-    let canonical_path = path.canonicalize()?;
+async fn recv_all_files(path: std::path::PathBuf) {
+    let canonical_path = path.canonicalize().unwrap();
     let mut folder_info = FolderInfo::new(canonical_path);
 
-    if path.is_dir() {
-        for result_entry in fs::read_dir(path)? {
-            let entry = result_entry?;
-            let file_path = entry.path().canonicalize()?;
+    let (tx, mut rx) = mpsc::channel(100);
 
-            if file_path.is_file() {
-                folder_info.add_file(file_path);
+    let dest_handle = tokio::spawn(async move {
+        if let Err(e) = dir_scanner::get_all_files_in_directory(&path, tx).await {
+            eprintln!("Error scanning dest: {}", e);
+        }
+    });
+
+    while let Some(event) = rx.recv().await {
+        match event {
+            dir_scanner::DirectoryEvent::Entry(file_info) => {
+                println!("{}", file_info.path.display());
+                folder_info.files.push(file_info);
             }
+            dir_scanner::DirectoryEvent::Finished => break,
+            dir_scanner::DirectoryEvent::Error(e) => eprintln!("Scan error (dest): {}", e),
         }
     }
 
-    Ok(folder_info)
+    let _ = dest_handle.await;
 }
