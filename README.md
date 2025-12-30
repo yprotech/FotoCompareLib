@@ -3,5 +3,9 @@
 
 ## License
 
-This project is licensed under
+This project is licensed under either of
+
+- MIT license (LICENSE-MIT)
 - Apache License, Version 2.0 (LICENSE-APACHE)
+
+at your option.
